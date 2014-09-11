@@ -39,7 +39,8 @@ class ChatServerThread implements Runnable {
             }
             //clientID = this.in.readLine();
             this.out.println("Your ID is: " + clientID);
-
+            for (ChatServerThread thread : ChatServer.threads)
+                thread.out.println("'" + clientID + "' has connected.");
 
         } catch (IOException e) {
             System.out.println("IOException: " + e);
@@ -49,7 +50,7 @@ class ChatServerThread implements Runnable {
     public static boolean isInteger(String s) {
         try {
             Integer.parseInt(s);
-        } catch(NumberFormatException e) {
+        } catch (NumberFormatException e) {
             return false;
         }
         // only got here if we didn't return false
@@ -101,16 +102,47 @@ class ChatServerThread implements Runnable {
                         this.out.println("Your ID change request did not contain an ID. Please try again. The proper format is '/id <your_new_id>'");
                     }
                     String newID = fromClient.substring(4);
-                    for (ChatServerThread thread : ChatServer.threads) {
-                        if (thread.clientID.equals(clientID)) continue;
-                        thread.out.println("Poof! " + clientID + " is now " + newID + ".");
+                    if (newID.equals(clientID)) {
+                        this.out.println("You're already " + clientID);
+                        System.out.println(clientID + " tried to change their name to '" + clientID + "', but that's already his/her name.");
                     }
-                    clientID = newID;
-                    System.out.println(clientID + " changed ID to '" + newID + "'." );
-                    this.out.println("Poof! You're now '" + clientID + "'.");
-                }  else if (fromClient.length() >= 8 && fromClient.substring(0, 8).equals("/whisper")) {
-                    if (fromClient..split("\\s+"); || fromClient.substring(4).equals("")) {
 
+                    boolean validName = true;
+                    for (ChatServerThread thread : ChatServer.threads) {
+                        if (newID.equals(thread.clientID)) {
+                            System.out.println(clientID + " tried to change names to '" + newID + "', but that's already taken.");
+                            this.out.println("'" + newID + "' is already taken.");
+                            validName = false;
+                        }
+                    }
+                    if (validName) {
+                        for (ChatServerThread thread : ChatServer.threads) {
+                            if (thread.clientID.equals(clientID)) continue;
+                            thread.out.println("Poof! " + clientID + " is now " + newID + ".");
+                        }
+                        clientID = newID;
+                        System.out.println(clientID + " changed ID to '" + newID + "'.");
+                        this.out.println("Poof! You're now '" + clientID + "'.");
+                    }
+                } else if ((fromClientArr.length >= 3) && fromClientArr[0] != null && fromClientArr[1] != null && fromClientArr[2] != null && fromClientArr[0].equals("/whisper")) {
+                    String recipient = fromClientArr[1];
+                    String message = fromClientArr[2];
+                    for (int i = 3; i < fromClientArr.length; i++) {
+                        if (fromClientArr[i] != null)
+                            message += " " + fromClientArr[i];
+                    }
+                    boolean notFound = true;
+                    if (recipient.equals(clientID)) {
+                        System.out.println("'" + clientID + "' tried to whisper to himself.");
+                        this.out.println("You can't message yourself!");
+                    } else {
+                        for (ChatServerThread thread : ChatServer.threads) {
+                            if (thread.clientID.equals(recipient)) {
+                                thread.out.println(clientID + " >> " + message);
+                                notFound = false;
+                            }
+                        }
+                        if (notFound) this.out.println("User '" + recipient + "' not found.");
                     }
                 } else {
                 /* Otherwise send the text to other clients */
