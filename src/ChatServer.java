@@ -6,7 +6,7 @@ import java.util.ArrayList;
  */
 public class ChatServer {
     public static ArrayList<ChatServerThread> threads = new ArrayList<ChatServerThread>(0);
-    public static ArrayList<ChatRoom> rooms = new ArrayList<ChatRoom>(0);
+    public static ArrayList<ChatRoom> rooms = new ArrayList<ChatRoom>(1);
 
     public static void main(String[] args) {
         
@@ -45,4 +45,17 @@ public class ChatServer {
         }
     }
 
+    public static ChatRoom roomExists(String roomName) {
+        for (ChatRoom room : rooms) {
+            if (room.getName().equals(roomName)) return room;
+        }
+        return null;
+    }
+
+    public static void announceToAll(String id, String message) {
+        for (ChatServerThread thread : ChatServer.threads) {
+            if (thread.clientID.equals(id)) continue;
+            thread.out.println(message);
+        }
+    }
 }

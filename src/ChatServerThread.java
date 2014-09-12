@@ -73,7 +73,7 @@ class ChatServerThread implements Runnable {
                 
                 /* If null, connection is closed, so just finish */
                 if (fromClient == null) {
-                    System.out.println(clientID + "disconnected");
+                    System.out.println("'" + clientID + "' disconnected");
                     this.in.close();
                     this.out.close();
                     this.socket.close();
@@ -162,6 +162,19 @@ class ChatServerThread implements Runnable {
                 return;
             }
         }
+    }
+
+    public void putInRoom(String roomName) {
+        ChatRoom chatRoom = ChatServer.roomExists(roomName);
+        if (chatRoom != null) {
+            chatRoom.addToRoom(this);
+            this.out.println("Switched to room: " + chatRoom.getName());
+            System.out.println("'" + clientID + "' switched to room: " + chatRoom.getName());
+        } else {
+            chatRoom = new ChatRoom(roomName);
+            chatRoom.addToRoom(this);
+            this.out.println("Created and switched to room: " + chatRoom.getName());
+            System.out.println("'" + clientID + "' created and switched to room: " + chatRoom.getName());
     }
 
 }

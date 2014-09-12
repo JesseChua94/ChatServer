@@ -12,7 +12,7 @@ public class ChatRoom {
     }
 
     public boolean setName(String name) {
-        if (name == null)   return false; // TODO make System and thread print out error messages
+        if (name == null) return false; // TODO make System and thread print out error messages
         for (ChatRoom room : ChatServer.rooms) {
             if (name.equals(room.name)) return false;
         }
@@ -28,10 +28,21 @@ public class ChatRoom {
         users.add(user);
     }
 
-    public boolean isInRoom (ChatServerThread user) {
+    public void removeFromRoom(ChatServerThread user) {
+        users.remove(user);
+    }
+
+    public boolean isInRoom(ChatServerThread user) {
         for (ChatServerThread thread : users) {
-            if (user == thread)   return true;
+            if (user == thread) return true;
         }
         return false;
+    }
+
+    public void announceToRoom(String id, String message) {
+        for (ChatServerThread thread : users) {
+            if (thread.clientID.equals(id)) continue;
+            thread.out.println(message);
+        }
     }
 }
