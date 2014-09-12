@@ -83,3 +83,12 @@ public class ChatServer {
 //        return Integer.toString(threads.size() + 1);
 //    }
 }
+    public class ChatRoom {
+        String name = "";
+
+        public void connectUser(String user) {
+
+        }
+    }
+
+}
