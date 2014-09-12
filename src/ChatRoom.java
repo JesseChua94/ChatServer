@@ -45,4 +45,20 @@ public class ChatRoom {
             thread.out.println(message);
         }
     }
+
+    public void printCurrentUsers(ChatServerThread thread) {
+        for (ChatServerThread user : users) {
+            thread.out.print("    " + user.clientID);
+        }
+        if (users.size() == 0) thread.out.println("You're the only one here :(");
+    }
+
+    public String listCurrentUsers() {
+        if (users.size() == 0) return "empty";
+        String output = "";
+        for (ChatServerThread user : users)
+            output += user.clientID + " ";
+        return output;
+
+    }
 }

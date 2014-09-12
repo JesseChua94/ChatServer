@@ -1,12 +1,14 @@
 import java.net.*;
 import java.io.*;
 import java.util.ArrayList;
+
 /**
  * Created by ethan on 9/10/14.
  */
 public class ChatServer {
     public static ArrayList<ChatServerThread> threads = new ArrayList<ChatServerThread>(0);
-    public static ArrayList<ChatRoom> rooms = new ArrayList<ChatRoom>(1);
+    public static ArrayList<ChatRoom> rooms = new ArrayList<ChatRoom>(0);
+    public static ChatRoom lobby = new ChatRoom("lobby");
 
     public static void main(String[] args) {
         
@@ -26,7 +28,9 @@ public class ChatServer {
             System.out.println("IOException: " + e);
             System.exit(1);
         }
-        
+
+        rooms.add(lobby);
+
         /* In the main thread, continuously listen for new clients and spin off threads for them. */
         while (true) {
             try {
@@ -52,10 +56,30 @@ public class ChatServer {
         return null;
     }
 
-    public static void announceToAll(String id, String message) {
-        for (ChatServerThread thread : ChatServer.threads) {
-            if (thread.clientID.equals(id)) continue;
-            thread.out.println(message);
+    public static void broadcastToARoom(String chatRoomName, String id, String message) {
+        ChatRoom chatRoom = rooms.get(0);
+        for (ChatRoom room : ChatServer.rooms)
+            if (room.getName().equals(chatRoomName)) chatRoom = room;
+        for (ChatServerThread thread : chatRoom.users) {
+                if (thread.clientID.equals(id)) continue;
+                thread.out.println(message);
         }
+
     }
+
+    public static boolean isIdValid(String id) {
+        for (ChatServerThread thread : ChatServer.threads) {
+            if (thread.clientID.equals(id)) return false;
+        }
+        return true;
+    }
+
+
+//    public static String makeValidId() {
+//        for (int i = 0; i < threads.size(); i++) {
+//            if (!(Integer.toString(i).equals(threads.get(i).clientID)))
+//                return Integer.toString(i);
+//        }
+//        return Integer.toString(threads.size() + 1);
+//    }
 }
