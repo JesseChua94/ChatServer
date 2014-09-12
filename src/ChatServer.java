@@ -74,21 +74,10 @@ public class ChatServer {
         return true;
     }
 
-
-//    public static String makeValidId() {
-//        for (int i = 0; i < threads.size(); i++) {
-//            if (!(Integer.toString(i).equals(threads.get(i).clientID)))
-//                return Integer.toString(i);
-//        }
-//        return Integer.toString(threads.size() + 1);
-//    }
-}
-    public class ChatRoom {
-        String name = "";
-
-        public void connectUser(String user) {
-
+    public static ChatRoom getRoom(String roomName) {
+        for (ChatRoom room : ChatServer.rooms) {
+            if (room.getName().equals(roomName))    return room;
         }
+        return null;
     }
-
 }

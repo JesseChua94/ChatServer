@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+
 /**
  * Created by ethan on 9/10/14.
  */
@@ -13,7 +14,6 @@ class ChatServerThread implements Runnable {
     protected PrintWriter out;
     protected BufferedReader in;
     String clientID = "-1", currentChatRoom;
-    boolean isAdmin = false;
 
     public ChatServerThread(Socket socket) {
         /* Assign local variable */
@@ -38,13 +38,6 @@ class ChatServerThread implements Runnable {
                 for (ChatRoom room : ChatServer.rooms) {
                     this.out.println(room.getName() + ": " + room.listCurrentUsers());
                 }
-//                int id = 0;
-//                for (ChatServerThread thread : ChatServer.threads) {
-//                    this.out.println("     " + thread.clientID);
-//                    if (isInteger(thread.clientID) && Integer.parseInt(thread.clientID) == id)
-//                        id++;
-//                }
-
             }
             for (ChatServerThread thread : ChatServer.threads)
                 thread.out.println(clientID + " has connected.");
@@ -171,6 +164,35 @@ class ChatServerThread implements Runnable {
                     } else {
                         this.out.println("You need to specify a room name.");
                     }
+                } else if (fromClientArr[0] != null && fromClientArr[0].equals("/+admin")) {
+                    if (fromClientArr[1] != null) {
+                        ChatRoom room = ChatServer.getRoom(currentChatRoom);
+                        room.makeAdmin(fromClientArr[1]);
+                        if (room.isAdmin(fromClientArr[0]))
+                            ChatServer.broadcastToARoom(currentChatRoom, clientID, fromClientArr[1] + " is now an admin of this room");
+                        else this.out.println("Couldn't find " + fromClientArr[1] + ", so he's not an admin.");
+                    }
+                } else if (fromClientArr[0] != null && fromClientArr[0].equals("/-admin")) {
+                    ChatRoom room = ChatServer.getRoom(currentChatRoom);
+                    if (room.isAdmin(clientID)) {
+                        if (fromClientArr[1] != null) {
+
+                            if (room.isAdmin(fromClientArr[1])) {
+                                room.takeAdmin(fromClientArr[1]);
+                                this.out.println(fromClientArr[1] + " is no longer an admin.");
+                                ChatServer.broadcastToARoom(currentChatRoom, clientID, fromClientArr[1] + " has been stripped of admin rights.");
+                            } else {
+                                this.out.println(fromClientArr[1] + " isn't an admin to begin with.");
+                            }
+                        }
+                    } else this.out.println("You're not an admin, noob!");
+                } else if (fromClientArr[0] != null && fromClientArr[0].equals("/kick")) {
+                    ChatRoom room = ChatServer.getRoom(currentChatRoom);
+                    if (room.isAdmin(clientID)) {
+                        if (fromClientArr[1] != null) {
+                            putInRoom(room.getName(), false, true, clientID);
+                        }
+                    } else this.out.println("You're not an admin, noob!");
                 } else {
                 /* Otherwise send the text to other clients */
                     ChatServer.broadcastToARoom(currentChatRoom, clientID, clientID + ": " + fromClient);
@@ -186,7 +208,7 @@ class ChatServerThread implements Runnable {
         }
     }
 
-    public void putInRoom(String roomName, boolean printStuff) {
+    public void putInRoom(String roomName, boolean printStuff, boolean wasKicked, String idOfKicked) {
         if (roomName.equals(currentChatRoom) && printStuff) {
             this.out.println("You're already in " + currentChatRoom + ". Idiot.");
             ChatServer.broadcastToARoom(currentChatRoom, clientID, clientID + " tried to move to " + currentChatRoom + ", but he's already in it! HAHAHA!");
@@ -194,7 +216,7 @@ class ChatServerThread implements Runnable {
         }
         ChatRoom chatRoom = ChatServer.roomExists(roomName);
         if (chatRoom != null) {
-            if(printStuff) {
+            if (printStuff) {
                 this.out.println("Switched to room: " + chatRoom.getName());
                 System.out.println("'" + clientID + "' switched to room: " + chatRoom.getName());
             }
@@ -211,16 +233,32 @@ class ChatServerThread implements Runnable {
             ChatServer.broadcastToARoom(roomName, clientID, clientID + " has joined this room.");
             chatRoom.printCurrentUsers(this);
         }
+        if (wasKicked) {
+            ChatServer.broadcastToARoom(currentChatRoom, idOfKicked, idOfKicked + " was KICKED (by " + clientID + ") from this room.");
+            ChatServer.broadcastToARoom(roomName, idOfKicked, idOfKicked + " has joined this room (as a result of being kicked).");
+        }
         chatRoom.addToRoom(this);
         currentChatRoom = roomName;
+        if (chatRoom.isEmpty()) {
+            chatRoom.admins.add(this);
+            this.out.println("You are now an admin of this room.");
+        }
+
     }
 
     public void putInRoom(String roomName) {
         putInRoom(roomName, true);
     }
 
+    public void putInRoom(String roomName, boolean printStuff) {
+        putInRoom(roomName, true, false);
+    }
+    public void putInRoom(String roomName, boolean printStuff, boolean wasKicked) {
+        putInRoom(roomName, true, false, "");
+    }
+
     public String makeValidId() {
-        int id = (int) (Math.random() * 10000*Math.random() + Math.random());
+        int id = (int) (Math.random() * 10000 * Math.random() + Math.random());
         for (ChatServerThread thread : ChatServer.threads) {
             if (thread.clientID.equals(Integer.toString(id))) break;
             id++;

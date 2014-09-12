@@ -6,6 +6,7 @@ import java.util.ArrayList;
 public class ChatRoom {
     public String name;
     public ArrayList<ChatServerThread> users = new ArrayList<ChatServerThread>(0);
+    public ArrayList<ChatServerThread> admins = new ArrayList<ChatServerThread>(0);
 
     public ChatRoom(String name) {
         this.name = name;
@@ -61,4 +62,29 @@ public class ChatRoom {
         return output;
 
     }
+
+    public boolean isEmpty() {
+        if (users.size() == 0) return true;
+        return false;
+    }
+
+    public boolean isAdmin(String id) {
+        for (ChatServerThread admin : admins)
+            if (id.equals(admin.clientID)) return true;
+        return false;
+    }
+
+    public void makeAdmin(String id) {
+        for (ChatServerThread user : users) {
+            if(user.clientID.equals(id)) admins.add(user);
+        }
+    }
+
+    public void takeAdmin(String clientID) {
+        for (ChatServerThread admin : admins) {
+            if (admin.clientID.equals(clientID)) admins.remove(admin);
+        }
+    }
+
+
 }
