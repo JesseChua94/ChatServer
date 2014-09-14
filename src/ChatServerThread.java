@@ -27,10 +27,10 @@ class ChatServerThread implements Runnable {
             /* Some debug */
             System.out.println("Client connected!");
 
+            clientID = makeValidId();
             putInRoom("lobby", false);
             this.out.println("Welcome to the chat server! \n" +
                     "You are in room: " + currentChatRoom + ". Type '/room <room_name>' to switch.");
-            clientID = makeValidId();
             this.out.println("Your id is: " + clientID + ". Type '/id <new_id>' to change it.");
             /* Say hi to the client */
             if (ChatServer.threads.size() > 0) {
@@ -40,7 +40,7 @@ class ChatServerThread implements Runnable {
                 }
             }
             for (ChatServerThread thread : ChatServer.threads)
-                thread.out.println(clientID + " has connected.");
+                thread.out.println(clientID + " has connected to room: " + currentChatRoom);
 
         } catch (IOException e) {
             System.out.println("IOException: " + e);
@@ -156,43 +156,74 @@ class ChatServerThread implements Runnable {
                             if (notFound) this.out.println("User '" + recipient + "' not found.");
                         }
                     }
+
                 /* Allow user to change rooms by typing '/room <room-name>' */
                 } else if (fromClientArr[0] != null && fromClientArr[0].equals("/room")) {
-                    if (fromClientArr[1] != null) {
+                    String targetRoom = fromClientArr[1];
+                    if (targetRoom != null && targetRoom.equals("which")) this.out.println("You are in room: " + currentChatRoom);
+                    else if (targetRoom != null) {
                         String roomName = fromClientArr[1];
                         this.putInRoom(roomName);
                     } else {
                         this.out.println("You need to specify a room name.");
                     }
+
+                /* Allow user (if admin) to add admins by typing '/+admin <user-id>'*/
                 } else if (fromClientArr[0] != null && fromClientArr[0].equals("/+admin")) {
-                    if (fromClientArr[1] != null) {
-                        ChatRoom room = ChatServer.getRoom(currentChatRoom);
-                        room.makeAdmin(fromClientArr[1]);
-                        if (room.isAdmin(fromClientArr[0]))
-                            ChatServer.broadcastToARoom(currentChatRoom, clientID, fromClientArr[1] + " is now an admin of this room");
-                        else this.out.println("Couldn't find " + fromClientArr[1] + ", so he's not an admin.");
-                    }
+                    ChatRoom room = ChatServer.getRoom(currentChatRoom);
+                    String target = fromClientArr[1];
+                    if (room.isAdmin(clientID)) { // check if calling user is admin
+                        if (target != null) {
+                            room.makeAdmin(fromClientArr[1]);
+                            if (room.isAdmin(fromClientArr[1]))
+                                ChatServer.broadcastToARoom(currentChatRoom, clientID, target + " is now an admin of this room");
+                            else this.out.println("Couldn't find " + target + ".");
+                        }
+                    } else
+                        this.out.println("You're not an admin!!!!!!!!!!!!!!!!!!!11!!!!!!!!!!!!!!21!3#$!!!!14251612!");
+
+                /* Allow user (if admin) to remove admins by typing '/-admin <admin-id>'*/
                 } else if (fromClientArr[0] != null && fromClientArr[0].equals("/-admin")) {
                     ChatRoom room = ChatServer.getRoom(currentChatRoom);
+                    String target = fromClientArr[1];
                     if (room.isAdmin(clientID)) {
-                        if (fromClientArr[1] != null) {
-
-                            if (room.isAdmin(fromClientArr[1])) {
+                        if (target != null) {
+                            if (room.isAdmin(fromClientArr[1])) {   // check if target is actually an admin
                                 room.takeAdmin(fromClientArr[1]);
                                 this.out.println(fromClientArr[1] + " is no longer an admin.");
-                                ChatServer.broadcastToARoom(currentChatRoom, clientID, fromClientArr[1] + " has been stripped of admin rights.");
-                            } else {
-                                this.out.println(fromClientArr[1] + " isn't an admin to begin with.");
-                            }
+                                ChatServer.broadcastToARoom(currentChatRoom, clientID, target + " has been stripped of admin rights.");
+                            } else this.out.println(target + " isn't an admin to begin with.");
                         }
-                    } else this.out.println("You're not an admin, noob!");
+                    } else this.out.println("You're not an admin, n00b!");
+
+                /* Allow user (if admin) to kick users by typing '/kick <user-id>'*/
                 } else if (fromClientArr[0] != null && fromClientArr[0].equals("/kick")) {
                     ChatRoom room = ChatServer.getRoom(currentChatRoom);
+                    String target = fromClientArr[1];
+                    ChatServerThread targetThread = ChatServer.getUser(target);
                     if (room.isAdmin(clientID)) {
-                        if (fromClientArr[1] != null) {
-                            putInRoom(room.getName(), false, true, clientID);
+                        if (target != null && room.isInRoom(targetThread)) {
+                            targetThread.out.println("You have been kicked by " + clientID + ".");
+                            targetThread.putInRoom("lobby", false, true, target, clientID);
+                        } else if (target != null) this.out.println("You need to specify a target user.");
+                    } else this.out.println("You're not an admin, n()()b!");
+
+
+                } else if (fromClientArr[0] != null && fromClientArr[0].equals("/topic")) {
+                    ChatRoom room = ChatServer.getRoom(currentChatRoom);
+                    String topic = fromClientArr[1];
+                    for (int i = 2; i < fromClientArr.length; i++)
+                        topic += " " + fromClientArr[2];
+                    if (room.isAdmin(clientID)) {
+                        if (topic != null) {
+                            room.setTopic(topic);
+                            this.out.println("Topic changed successfully!");
+                            ChatServer.broadcastToARoom(currentChatRoom, "", "Topic has been changed by " + clientID + " to: " + topic );
                         }
-                    } else this.out.println("You're not an admin, noob!");
+                        else this.out.println("Please enter a valid topic.");
+                    } else this.out.println("You need to be an admin to set the topic.");
+
+
                 } else {
                 /* Otherwise send the text to other clients */
                     ChatServer.broadcastToARoom(currentChatRoom, clientID, clientID + ": " + fromClient);
@@ -208,10 +239,9 @@ class ChatServerThread implements Runnable {
         }
     }
 
-    public void putInRoom(String roomName, boolean printStuff, boolean wasKicked, String idOfKicked) {
+    public void putInRoom(String roomName, boolean printStuff, boolean wasKicked, String idOfKicked, String idOfKicker) {
         if (roomName.equals(currentChatRoom) && printStuff) {
             this.out.println("You're already in " + currentChatRoom + ". Idiot.");
-            ChatServer.broadcastToARoom(currentChatRoom, clientID, clientID + " tried to move to " + currentChatRoom + ", but he's already in it! HAHAHA!");
             return;
         }
         ChatRoom chatRoom = ChatServer.roomExists(roomName);
@@ -234,15 +264,20 @@ class ChatServerThread implements Runnable {
             chatRoom.printCurrentUsers(this);
         }
         if (wasKicked) {
-            ChatServer.broadcastToARoom(currentChatRoom, idOfKicked, idOfKicked + " was KICKED (by " + clientID + ") from this room.");
+            ChatServer.broadcastToARoom(currentChatRoom, idOfKicked, idOfKicked + " was KICKED (by " + idOfKicker + ") from this room.");
             ChatServer.broadcastToARoom(roomName, idOfKicked, idOfKicked + " has joined this room (as a result of being kicked).");
         }
+        boolean makeAdmin = false;
+        if (chatRoom.isEmpty()) makeAdmin = true;
+        if (currentChatRoom == null) currentChatRoom = "lobby";
+        ChatServer.getRoom(currentChatRoom).removeFromRoom(this);
         chatRoom.addToRoom(this);
         currentChatRoom = roomName;
-        if (chatRoom.isEmpty()) {
+        if (makeAdmin && !roomName.equals("lobby")) {
             chatRoom.admins.add(this);
             this.out.println("You are now an admin of this room.");
         }
+        if (chatRoom.getTopic() != null) this.out.println(chatRoom.getName() + "'s topic is: " + chatRoom.getTopic());
 
     }
 
@@ -251,10 +286,11 @@ class ChatServerThread implements Runnable {
     }
 
     public void putInRoom(String roomName, boolean printStuff) {
-        putInRoom(roomName, true, false);
+        putInRoom(roomName, printStuff, false);
     }
+
     public void putInRoom(String roomName, boolean printStuff, boolean wasKicked) {
-        putInRoom(roomName, true, false, "");
+        putInRoom(roomName, printStuff, wasKicked, "", "");
     }
 
     public String makeValidId() {

@@ -4,7 +4,7 @@ import java.util.ArrayList;
  * Created by ethan on 9/11/14.
  */
 public class ChatRoom {
-    public String name;
+    public String name, topic;
     public ArrayList<ChatServerThread> users = new ArrayList<ChatServerThread>(0);
     public ArrayList<ChatServerThread> admins = new ArrayList<ChatServerThread>(0);
 
@@ -31,6 +31,8 @@ public class ChatRoom {
 
     public void removeFromRoom(ChatServerThread user) {
         users.remove(user);
+        if (isAdmin(user.clientID))
+            admins.remove(user);
     }
 
     public boolean isInRoom(ChatServerThread user) {
@@ -48,10 +50,14 @@ public class ChatRoom {
     }
 
     public void printCurrentUsers(ChatServerThread thread) {
-        for (ChatServerThread user : users) {
-            thread.out.print("    " + user.clientID);
+        String output = "You're the only one here :'(";
+        if (users.size() != 0) {
+            output = "Current user(s) in this room:";
+            for (ChatServerThread user : users) {
+                output += " " + user.clientID;
+            }
         }
-        if (users.size() == 0) thread.out.println("You're the only one here :(");
+        thread.out.println(output);
     }
 
     public String listCurrentUsers() {
@@ -60,8 +66,8 @@ public class ChatRoom {
         for (ChatServerThread user : users)
             output += user.clientID + " ";
         return output;
-
     }
+
 
     public boolean isEmpty() {
         if (users.size() == 0) return true;
@@ -76,7 +82,10 @@ public class ChatRoom {
 
     public void makeAdmin(String id) {
         for (ChatServerThread user : users) {
-            if(user.clientID.equals(id)) admins.add(user);
+            if (user.clientID.equals(id)) {
+                admins.add(user);
+                user.out.println("You are now an admin of " + this.getName());
+            }
         }
     }
 
@@ -86,5 +95,12 @@ public class ChatRoom {
         }
     }
 
+    public void setTopic(String topic) {
+        this.topic = topic;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
 
 }

@@ -80,4 +80,11 @@ public class ChatServer {
         }
         return null;
     }
+
+    public static ChatServerThread getUser(String id) {
+        for (ChatServerThread thread : ChatServer.threads) {
+            if (thread.clientID.equals(id)) return thread;
+        }
+        return null;
+    }
 }
